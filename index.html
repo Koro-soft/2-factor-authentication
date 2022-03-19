@@ -9,11 +9,13 @@
 </head>
 
 <body>
-    <div>
+    <div id="hello">
         Easy and simple two-factor authentication for discord<br>
         <a
             href="https://discord.com/api/oauth2/authorize?client_id=947435878891008041&permissions=268437504&scope=bot%20applications.commands">add
             bot to server</a>
+        <span>Note: When you set up a bot, move the 2 factor authentication role to the top.</span>
+        <img src="setting.png" alt="move to the top">
     </div>
     <br>
     <div id="start" style="display: none;">Stat authentication
@@ -25,7 +27,8 @@
         <form method="get" action="/" autocomplete="off" spellcheck="false">
             <label>Enter the number shown in discord dm: <input type="text" name="number" required
                     pattern="\d{6}"></label><br>
-            <label><input type="checkbox" name="savehash" checked>Save the hash value of the user id for future authentication
+            <label><input type="checkbox" name="savehash" checked>Save the hash value of the user id for future
+                authentication
                 (if available)</label><br>
             <input type="hidden" name="id" id="id"><input type="submit" value="authentication">
         </form>
@@ -34,9 +37,11 @@
         const parms = new URLSearchParams(location.search);
         if (parms.get('start')) {
             document.getElementById('start').style.display = 'block';
+            document.getElementById('hello').style.display = 'none';
         }
         if (parms.get('id')) {
             document.getElementById('auth').style.display = 'block';
+            document.getElementById('hello').style.display = 'none';
             document.getElementById('id').value = parms.get('id');
         }
     </script>
