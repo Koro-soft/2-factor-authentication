@@ -144,9 +144,6 @@ app.get('/', function (request, response) {
         return response.sendFile('index.html', { root: '.' });
     }
 });
-app.get('/img/setting.png', function (request, response) {
-    response.sendFile('setting.png', { root: '.' });
-});
 app.listen(process.env.PORT, function () {
     console.log('HTTP server is listening');
 });
