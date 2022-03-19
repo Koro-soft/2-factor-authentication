@@ -1,0 +1,28 @@
+{
+  "name": "2-factor-authentication",
+  "version": "1.0.0",
+  "description": "This application is for incorporating two-factor authentication on Discord's servers",
+  "scripts": {
+    "start": "node ./http.js && node ./discord.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Koro-soft/2-factor-authentication.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": "16.x"
+  },
+  "bugs": {
+    "url": "https://github.com/Koro-soft/2-factor-authentication/issues"
+  },
+  "homepage": "https://github.com/Koro-soft/2-factor-authentication#readme",
+  "dependencies": {
+    "discord.js": "^13.6.0",
+    "express": "^4.17.3",
+    "mongodb": "^4.4.1",
+    "node-fetch": "^2.6.7"
+  }
+}

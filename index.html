@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2 factor authentication</title>
+</head>
+
+<body>
+    <div>
+        Easy and simple two-factor authentication for discord<br>
+        <a
+            href="https://discord.com/api/oauth2/authorize?client_id=947435878891008041&permissions=268437504&scope=bot%20applications.commands">add
+            bot to server</a>
+    </div>
+    <br>
+    <div id="start" style="display: none;">Stat authentication
+        <a
+            href="https://discord.com/api/oauth2/authorize?client_id=947435878891008041&redirect_uri=https%3A%2F%2Ftwofactorauthenticationservice.herokuapp.com%2F&response_type=code&scope=identify">Click
+            here</a>
+    </div>
+    <div id="auth" style="display: none;">
+        <form method="get" action="/" autocomplete="off" spellcheck="false">
+            <label>Enter the number shown in discord dm: <input type="text" name="number" required
+                    pattern="\d{6}"></label><br>
+            <label><input type="checkbox" name="savehash" checked>Save the hash value of the user id for future authentication
+                (if available)</label><br>
+            <input type="hidden" name="id" id="id"><input type="submit" value="authentication">
+        </form>
+    </div>
+    <script>
+        const parms = new URLSearchParams(location.search);
+        if (parms.get('start')) {
+            document.getElementById('start').style.display = 'block';
+        }
+        if (parms.get('id')) {
+            document.getElementById('auth').style.display = 'block';
+            document.getElementById('id').value = parms.get('id');
+        }
+    </script>
+</body>
+
+</html>
