@@ -3,7 +3,8 @@ const express = require('express');
 const Discord = require('discord.js');
 const fetch = require('node-fetch');
 const Mongo = require('mongodb');
-const hash = hash = function (value) { return crypto.createHash('sha512').update(value).digest('hex'); }
+const crypto = require('crypto');
+const hash = function (value) { return crypto.createHash('sha512').update(value).digest('hex'); }
 const app = express();
 const client = new Discord.Client({
     intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.DIRECT_MESSAGES, Discord.Intents.FLAGS.GUILD_MEMBERS]
