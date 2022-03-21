@@ -16,26 +16,21 @@ client.on('guildMemberAdd', function (member) {
         const authing = mongoclient.db('2auth').collection('authing');
         const authed = mongoclient.db('2auth').collection('authed');
         setting.findOne({ guild: member.guild.id }).then(function (hitsetting) {
-            let authend = true;
-            try {
-                authed.findOne({ id: hash(member.id) }).then(function (id) {
-                    if (hitsetting.canold == 1 && id != null) {
-                        member.roles.add(hitsetting.role);
-                        authend = false
-                    }
-                });
-            } catch { } finally {
-                if (authend) {
-                    member.createDM().then(function (dm) {
-                        const code = Math.floor(Math.random() * 1000000);
-                        authing.insertOne({ id: member.id, guild: member.guild.id, code: code }).then(function () {
-                            dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
-                            dm.send(String(code)).then(function (vaule) { dm.messages.pin(vaule); });
-                            dbclient.close();
-                        });
-                    });
+            authed.findOne({ id: hash(member.id) }).then(function (id) {
+                if (hitsetting.canold == 1 && !id) {
+                    member.roles.add(hitsetting.role);
+                    return
                 }
-            }
+            }).finally(function () {
+                member.createDM().then(function (dm) {
+                    const code = Math.floor(Math.random() * 1000000);
+                    authing.insertOne({ id: member.id, guild: member.guild.id, code: code }).then(function () {
+                        dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
+                        dm.send(String(code)).then(function (vaule) { dm.messages.pin(vaule); });
+                        dbclient.close();
+                    });
+                });
+            });
         });
     });
 });
@@ -129,13 +124,11 @@ app.get('/', function (request, response) {
                 if (hit.code == request.query.number) {
                     response.send('<h1>Authentication successful! <a href="#" onclick="window.close();return false">You can close this window</a></h1>');
                     setting.findOne({ guild: hit.guild }).then(function (hitsetting) {
-                        try {
                             authed.findOne({ id: hash(request.query.id) }).then(function (hitauthed) {
                                 if (hitsetting.canold == 1 && request.query.savehash == 'on' && !hitauthed) {
                                     authed.insertOne({ id: hash(request.query.id) });
                                 }
                             });
-                        } catch { }
                         client.guilds.fetch(hit.guild).then(function (guildserver) {
                             guildserver.members.fetch(request.query.id).then(function (member) {
                                 member.roles.add(hitsetting.role).then(function () {
