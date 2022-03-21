@@ -76,17 +76,20 @@ client.on('interactionCreate', function (interaction) {
         dbclient.connect().then(function (mongoclient) {
             const setting = mongoclient.db('2auth').collection('setting');
             if (interaction.options.getRole('verifiedrole').id == interaction.guild.roles.everyone.id) {
-                setting.findOne({ guild: interaction.guild.id }).then(function () {
+                setting.findOneAndDelete({ guild: interaction.guild.id }).then(function () {
                     dbclient.close();
                 });
             } else {
                 setting.findOne({ guild: interaction.guild.id }).then(function (hit) {
                     if (hit) {
-                        setting.findOneAndUpdate({ guild: interaction.guild.id }, { guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id });
+                        setting.findOneAndUpdate({ guild: interaction.guild.id }, { guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id }).then(function () {
+                            dbclient.close();
+                        });
                     } else {
-                        setting.insertOne({ guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id });
+                        setting.insertOne({ guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id }).then(function () {
+                            dbclient.close();
+                        });
                     }
-                    dbclient.close();
                 });
             }
         });
