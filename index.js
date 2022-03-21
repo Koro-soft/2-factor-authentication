@@ -124,11 +124,11 @@ app.get('/', function (request, response) {
                 if (hit.code == request.query.number) {
                     response.send('<h1>Authentication successful! <a href="#" onclick="window.close();return false">You can close this window</a></h1>');
                     setting.findOne({ guild: hit.guild }).then(function (hitsetting) {
-                            authed.findOne({ id: hash(request.query.id) }).then(function (hitauthed) {
-                                if (hitsetting.canold == 1 && request.query.savehash == 'on' && !hitauthed) {
-                                    authed.insertOne({ id: hash(request.query.id) });
-                                }
-                            });
+                        authed.findOne({ id: hash(request.query.id) }).then(function (hitauthed) {
+                            if (hitsetting.canold == 1 && request.query.savehash == 'on' && !hitauthed) {
+                                authed.insertOne({ id: hash(request.query.id) });
+                            }
+                        });
                         client.guilds.fetch(hit.guild).then(function (guildserver) {
                             guildserver.members.fetch(request.query.id).then(function (member) {
                                 member.roles.add(hitsetting.role).then(function () {
