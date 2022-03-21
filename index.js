@@ -20,7 +20,7 @@ client.on('guildMemberAdd', function (member) {
             try {
                 authed.findOne({ id: hash(member.id) }).then(function (id) {
                     if (hitsetting.canold == 1 && id != null) {
-                        member.roles.add(hitsetting.roleid);
+                        member.roles.add(hitsetting.role);
                         authend = false
                     }
                 });
