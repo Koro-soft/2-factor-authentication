@@ -129,26 +129,30 @@ app.get('/', function (request, response) {
             const authing = mongoclient.db('2auth').collection('authing');
             const authed = mongoclient.db('2auth').collection('authed');
             authing.findOne({ id: request.query.id }).then(function (hit) {
-                if (hit.code == request.query.number) {
-                    response.send('<h1>Authentication successful! <a href="#" onclick="window.close();return false">You can close this window</a></h1>');
-                    setting.findOne({ guild: hit.guild }).then(function (hitsetting) {
-                        authed.findOne({ id: hash(request.query.id) }).then(function (hitauthed) {
-                            if (hitsetting.canold == 1 && request.query.savehash == 'on' && !hitauthed) {
-                                authed.insertOne({ id: hash(request.query.id) });
-                            }
-                        });
-                        client.guilds.fetch(hit.guild).then(function (guildserver) {
-                            guildserver.members.fetch(request.query.id).then(function (member) {
-                                member.roles.add(hitsetting.role).then(function () {
-                                    authing.findOneAndDelete({ id: request.query.id }).then(function () {
-                                        dbclient.close();
+                try {
+                    if (hit.code == request.query.number) {
+                        response.send('<h1>Authentication successful! <a href="#" onclick="window.close();return false">You can close this window</a></h1>');
+                        setting.findOne({ guild: hit.guild }).then(function (hitsetting) {
+                            authed.findOne({ id: hash(request.query.id) }).then(function (hitauthed) {
+                                if (hitsetting.canold == 1 && request.query.savehash == 'on' && !hitauthed) {
+                                    authed.insertOne({ id: hash(request.query.id) });
+                                }
+                            });
+                            client.guilds.fetch(hit.guild).then(function (guildserver) {
+                                guildserver.members.fetch(request.query.id).then(function (member) {
+                                    member.roles.add(hitsetting.role).then(function () {
+                                        authing.findOneAndDelete({ id: request.query.id }).then(function () {
+                                            dbclient.close();
+                                        });
                                     });
                                 });
                             });
                         });
-                    });
-                } else {
-                    response.send('Authentication failed. <a href="/?start=0">Try again</a>');
+                    } else {
+                        response.send('Authentication failed. <a href="/?start=0">Try again</a>');
+                    }
+                } catch {
+                    response.send('An error occurred.');
                 }
             });
         });
