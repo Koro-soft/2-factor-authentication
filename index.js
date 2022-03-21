@@ -23,7 +23,7 @@ client.on('guildMemberAdd', function (member) {
             } else {
                 setting.findOne({ guild: member.guild.id }).then(function (hitsetting) {
                     authed.findOne({ id: hash(member.id) }).then(function (id) {
-                        if (hitsetting.canold == 1 && !id) {
+                        if (hitsetting.canold && !id) {
                             member.roles.add(hitsetting.role);
                             return
                         }
@@ -134,7 +134,7 @@ app.get('/', function (request, response) {
                         response.send('<h1>Authentication successful! <a href="#" onclick="window.close();return false">You can close this window</a></h1>');
                         setting.findOne({ guild: hit.guild }).then(function (hitsetting) {
                             authed.findOne({ id: hash(request.query.id) }).then(function (hitauthed) {
-                                if (hitsetting.canold == 1 && request.query.savehash == 'on' && !hitauthed) {
+                                if (hitsetting.canold && request.query.savehash == 'on' && !hitauthed) {
                                     authed.insertOne({ id: hash(request.query.id) });
                                 }
                             });
