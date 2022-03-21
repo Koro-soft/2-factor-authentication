@@ -48,7 +48,7 @@ client.on('ready', function () {
         options: [{
             type: 'ROLE',
             name: 'verifiedrole',
-            description: 'Roles given to authenticated members',
+            description: 'Roles given to authenticated members. If you specify @everyone, disable authentication',
             required: true
         }, {
             type: 'BOOLEAN',
@@ -68,21 +68,27 @@ client.on('interactionCreate', function (interaction) {
             interaction.reply({ content: 'Administrator rights are required to run this command', ephemeral: true });
             return
         }
-        let oldauthdata = interaction.options.getBoolean('canuseoldauthdata')
+        let oldauthdata = interaction.options.getBoolean('canuseoldauthdata');
         if (oldauthdata == null) {
             oldauthdata = true
         }
         const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
         dbclient.connect().then(function (mongoclient) {
             const setting = mongoclient.db('2auth').collection('setting');
-            setting.findOne({ guild: interaction.guild.id }).then(function (hit) {
-                if (hit) {
-                    setting.findOneAndUpdate({ guild: interaction.guild.id }, { guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id })
-                } else {
-                    setting.insertOne({ guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id });
-                }
-            });
-            dbclient.close();
+            if (interaction.options.getRole('verifiedrole').id == interaction.guild.roles.everyone.id) {
+                setting.findOne({ guild: interaction.guild.id }).then(function () {
+                    dbclient.close();
+                });
+            } else {
+                setting.findOne({ guild: interaction.guild.id }).then(function (hit) {
+                    if (hit) {
+                        setting.findOneAndUpdate({ guild: interaction.guild.id }, { guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id });
+                    } else {
+                        setting.insertOne({ guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id });
+                    }
+                    dbclient.close();
+                });
+            }
         });
         interaction.reply({ content: 'Updating settings', ephemeral: true });
     }
@@ -118,7 +124,7 @@ app.get('/', function (request, response) {
             const authed = mongoclient.db('2auth').collection('authed');
             authing.findOne({ id: request.query.id }).then(function (hit) {
                 if (hit.code == request.query.number) {
-                    response.send('<h1>Authentication successful! <a href="#" onclick="window.close();return false">You can close this window</a></h1>')
+                    response.send('<h1>Authentication successful! <a href="#" onclick="window.close();return false">You can close this window</a></h1>');
                     setting.findOne({ guild: hit.guild }).then(function (hitsetting) {
                         try {
                             if (hitsetting.canold == 1 && request.query.savehash == 'on') {
@@ -140,6 +146,12 @@ app.get('/', function (request, response) {
                 }
             });
         });
+    } else if (request.query.redir) {
+        if (request.query.redir.startsWith('https://discord.gg')) {
+            response.redirect(request.query.redir);
+        } else {
+            response.send('To redirect, specify an invitation link to discord that begins with https://discord.gg/.');
+        }
     } else {
         return response.sendFile('index.html', { root: '.' });
     }
