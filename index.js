@@ -21,21 +21,24 @@ client.on('guildMemberAdd', function (member) {
                     dm.send('You are currently authenticating. Please rejoin after authentication is complete');
                 });
             } else {
+                let authed = false;
                 setting.findOne({ guild: member.guild.id }).then(function (hitsetting) {
                     authed.findOne({ id: hash(member.id) }).then(function (id) {
                         if (hitsetting.canold && id) {
                             member.roles.add(hitsetting.role);
-                            return
+                            authed = true
                         }
                     }).finally(function () {
-                        member.createDM().then(function (dm) {
-                            const code = Math.floor(Math.random() * 1000000);
-                            authing.insertOne({ id: member.id, guild: member.guild.id, code: code }).then(function () {
-                                dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
-                                dm.send(String(code)).then(function (vaule) { dm.messages.pin(vaule); });
-                                dbclient.close();
+                        if (!authed) {
+                            member.createDM().then(function (dm) {
+                                const code = Math.floor(Math.random() * 1000000);
+                                authing.insertOne({ id: member.id, guild: member.guild.id, code: code }).then(function () {
+                                    dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
+                                    dm.send(String(code)).then(function (vaule) { dm.messages.pin(vaule); });
+                                    dbclient.close();
+                                });
                             });
-                        });
+                        }
                     });
                 });
             }
