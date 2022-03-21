@@ -29,7 +29,7 @@ client.on('guildMemberAdd', function (member) {
                     member.createDM().then(function (dm) {
                         const code = Math.floor(Math.random() * 1000000);
                         authing.insertOne({ id: member.id, guild: member.guild.id, code: code }).then(function () {
-                            dm.send('Please open this url to complete the authentication. https://twofactorauthenticationservice.herokuapp.com/?start=0 And enter the code');
+                            dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
                             dm.send(String(code)).then(function (vaule) { dm.messages.pin(vaule); });
                             dbclient.close();
                         });
