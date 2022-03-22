@@ -23,26 +23,28 @@ client.on('guildMemberAdd', function (member) {
             } else {
                 let authend = false;
                 setting.findOne({ guild: member.guild.id }).then(function (hitsetting) {
-                    authed.findOne({ id: hash(member.id) }).then(function (id) {
-                        if (hitsetting.canold && id) {
-                            member.roles.add(hitsetting.role);
-                            authend = true
-                        }
-                    }).finally(function () {
-                        if (!authend) {
-                            member.createDM().then(function (dm) {
-                                let code = Math.floor(Math.random() * 1000000);
-                                while (code.toString().length != 6) {
-                                    code = Math.floor(Math.random() * 1000000);
-                                }
-                                authing.insertOne({ id: member.id, guild: member.guild.id, code: code }).then(function () {
-                                    dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
-                                    dm.send(String(code)).then(function (vaule) { dm.messages.pin(vaule); });
-                                    dbclient.close();
+                    if (hitsetting) {
+                        authed.findOne({ id: hash(member.id) }).then(function (id) {
+                            if (hitsetting.canold && id) {
+                                member.roles.add(hitsetting.role);
+                                authend = true
+                            }
+                        }).finally(function () {
+                            if (!authend) {
+                                member.createDM().then(function (dm) {
+                                    let code = Math.floor(Math.random() * 1000000);
+                                    while (code.toString().length != 6) {
+                                        code = Math.floor(Math.random() * 1000000);
+                                    }
+                                    authing.insertOne({ id: member.id, guild: member.guild.id, code: code }).then(function () {
+                                        dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
+                                        dm.send(String(code)).then(function (vaule) { dm.messages.pin(vaule); });
+                                        dbclient.close();
+                                    });
                                 });
-                            });
-                        }
-                    });
+                            }
+                        });
+                    }
                 });
             }
         });
@@ -135,7 +137,7 @@ app.get('/', function (request, response) {
             const authing = mongoclient.db('2auth').collection('authing');
             const authed = mongoclient.db('2auth').collection('authed');
             authing.findOne({ id: request.query.id }).then(function (hit) {
-                try {
+                if (hit) {
                     if (hit.code == request.query.number) {
                         response.send('<h1>Authentication successful! <a href="#" onclick="window.close();return false">You can close this window</a></h1>');
                         setting.findOne({ guild: hit.guild }).then(function (hitsetting) {
@@ -157,8 +159,8 @@ app.get('/', function (request, response) {
                     } else {
                         response.send('Authentication failed. <a href="/?start=0">Try again</a>');
                     }
-                } catch {
-                    response.send('An error occurred.');
+                } else {
+                    response.send('You are not currently authenticated');
                 }
             });
         });
