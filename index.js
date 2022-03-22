@@ -151,7 +151,7 @@ app.get('/', function (request, response) {
                     response.send('<h1>Authentication successful! <a href="#" onclick="window.close();return false">You can close this window</a></h1>');
                     setting.findOne({ guild: hit.guild }).then(function (hitsetting) {
                         authed.findOne({ id: hash(request.query.id) }).then(function (hitauthed) {
-                            if (hitsetting.canold && request.query.savehash == 'on' && hitauthed) {
+                            if (hitsetting.canold && request.query.savehash == 'on' && !hitauthed) {
                                 authed.insertOne({ id: hash(request.query.id) });
                             }
                         });
