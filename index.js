@@ -128,7 +128,7 @@ app.get('/', function (request, response) {
                         const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
                         dbclient.connect().then(function (mongoclient) {
                             const authing = mongoclient.db('2auth').collection('authing');
-                            authing.findOne({ id: request.query.id }).then(function (hit) {
+                            authing.findOne({ id: json.id }).then(function (hit) {
                                 if (hit) {
                                     return response.redirect(`/?id=${json.id}`);
                                 } else {
