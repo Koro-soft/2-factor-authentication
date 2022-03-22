@@ -33,7 +33,7 @@ client.on('guildMemberAdd', function (member) {
                             if (!authend) {
                                 member.createDM().then(function (dm) {
                                     let code = Math.floor(Math.random() * 1000000);
-                                    while (code.toString().length != 6) {
+                                    while (String(code).length != 6) {
                                         code = Math.floor(Math.random() * 1000000);
                                     }
                                     authing.insertOne({ id: member.id, guild: member.guild.id, code: code }).then(function () {
