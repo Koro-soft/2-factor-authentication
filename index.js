@@ -10,45 +10,47 @@ const client = new Discord.Client({
     intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.DIRECT_MESSAGES, Discord.Intents.FLAGS.GUILD_MEMBERS]
 });
 client.on('guildMemberAdd', function (member) {
-    const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
-    dbclient.connect().then(function (mongoclient) {
-        const setting = mongoclient.db('2auth').collection('setting');
-        const authing = mongoclient.db('2auth').collection('authing');
-        const authed = mongoclient.db('2auth').collection('authed');
-        authing.findOne({ id: member.id }).then(function (hitmember) {
-            if (hitmember) {
-                member.createDM().then(function (dm) {
-                    dm.send('You are currently authenticating. Please rejoin after authentication is complete');
-                });
-            } else {
-                let authend = false;
-                setting.findOne({ guild: member.guild.id }).then(function (hitsetting) {
-                    if (hitsetting) {
-                        authed.findOne({ id: hash(member.id) }).then(function (id) {
-                            if (hitsetting.canold && id) {
-                                member.roles.add(hitsetting.role);
-                                authend = true
-                            }
-                        }).finally(function () {
-                            if (!authend) {
-                                member.createDM().then(function (dm) {
-                                    let code = Math.floor(Math.random() * 1000000);
-                                    while (String(code).length != 6) {
-                                        code = Math.floor(Math.random() * 1000000);
-                                    }
-                                    authing.insertOne({ id: member.id, guild: member.guild.id, code: code }).then(function () {
-                                        dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
-                                        dm.send(String(code)).then(function (vaule) { dm.messages.pin(vaule); });
-                                        dbclient.close();
+    if (!member.user.bot) {
+        const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
+        dbclient.connect().then(function (mongoclient) {
+            const setting = mongoclient.db('2auth').collection('setting');
+            const authing = mongoclient.db('2auth').collection('authing');
+            const authed = mongoclient.db('2auth').collection('authed');
+            authing.findOne({ id: member.id }).then(function (hitmember) {
+                if (hitmember) {
+                    member.createDM().then(function (dm) {
+                        dm.send('You are currently authenticating. Please rejoin after authentication is complete');
+                    });
+                } else {
+                    let authend = false;
+                    setting.findOne({ guild: member.guild.id }).then(function (hitsetting) {
+                        if (hitsetting) {
+                            authed.findOne({ id: hash(member.id) }).then(function (id) {
+                                if (hitsetting.canold && id) {
+                                    member.roles.add(hitsetting.role);
+                                    authend = true
+                                }
+                            }).finally(function () {
+                                if (!authend) {
+                                    member.createDM().then(function (dm) {
+                                        let code = Math.floor(Math.random() * 1000000);
+                                        while (String(code).length != 6) {
+                                            code = Math.floor(Math.random() * 1000000);
+                                        }
+                                        authing.insertOne({ id: member.id, guild: member.guild.id, code: code }).then(function () {
+                                            dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
+                                            dm.send(String(code)).then(function (vaule) { dm.messages.pin(vaule); });
+                                            dbclient.close();
+                                        });
                                     });
-                                });
-                            }
-                        });
-                    }
-                });
-            }
+                                }
+                            });
+                        }
+                    });
+                }
+            });
         });
-    });
+    }
 });
 
 client.on('ready', function () {
