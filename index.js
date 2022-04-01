@@ -168,9 +168,9 @@ app.get('/', function (request, response) {
                                 });
                             });
                         });
-                    } else {
-                        response.send('Authentication failed. <a href="/?start=0">Try again</a>');
                     }
+                } else {
+                    response.send('Authentication failed. <a href="/?start=0">Try again</a>');
                 }
             });
         });
