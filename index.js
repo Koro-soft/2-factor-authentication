@@ -1,4 +1,4 @@
-'use strict';
+'use strict'
 const express = require('express');
 const Discord = require('discord.js');
 const fetch = require('node-fetch');
@@ -9,47 +9,40 @@ const app = express();
 const client = new Discord.Client({
     intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.DIRECT_MESSAGES, Discord.Intents.FLAGS.GUILD_MEMBERS]
 });
-client.on('guildMemberAdd', function (member) {
+client.on('guildMemberAdd', async function (member) {
     if (!member.user.bot) {
         const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
-        dbclient.connect().then(function (mongoclient) {
-            const setting = mongoclient.db('2auth').collection('setting');
-            const authing = mongoclient.db('2auth').collection('authing');
-            const authed = mongoclient.db('2auth').collection('authed');
-            authing.findOne({ id: member.id }).then(function (hitmember) {
-                if (hitmember) {
-                    member.createDM().then(function (dm) {
-                        dm.send('You are currently authenticating. Please rejoin after authentication is complete');
-                    });
-                } else {
-                    let authend = false;
-                    setting.findOne({ guild: member.guild.id }).then(function (hitsetting) {
-                        if (hitsetting) {
-                            authed.findOne({ id: hash(member.id) }).then(function (id) {
-                                if (hitsetting.canold && id) {
-                                    member.roles.add(hitsetting.role);
-                                    authend = true
-                                }
-                            }).finally(function () {
-                                if (!authend) {
-                                    member.createDM().then(function (dm) {
-                                        let code = Math.floor(Math.random() * 1000000);
-                                        while (String(code).length != 6) {
-                                            code = Math.floor(Math.random() * 1000000);
-                                        }
-                                        authing.insertOne({ id: member.id, guild: member.guild.id, code: code }).then(function () {
-                                            dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
-                                            dm.send(String(code)).then(function (vaule) { dm.messages.pin(vaule); });
-                                            dbclient.close();
-                                        });
-                                    });
-                                }
-                            });
-                        }
-                    });
+        const mongoclient = await dbclient.connect();
+        const setting = mongoclient.db('2auth').collection('setting');
+        const authing = mongoclient.db('2auth').collection('authing');
+        const authed = mongoclient.db('2auth').collection('authed');
+        const hitmember = await authing.findOne({ id: member.id });
+        if (hitmember) {
+            const dm = await member.createDM();
+            dm.send('You are currently authenticating. Please rejoin after authentication is complete');
+        } else {
+            let authend = false;
+            const hitsetting = await setting.findOne({ guild: member.guild.id });
+            if (hitsetting) {
+                const id = await authed.findOne({ id: hash(member.id) });
+                if (hitsetting.canold && id) {
+                    member.roles.add(hitsetting.role);
+                    authend = true
                 }
-            });
-        });
+            }
+            if (!authend) {
+                const dm = await member.createDM();
+                let code = Math.floor(Math.random() * 1000000);
+                while (String(code).length != 6) {
+                    code = Math.floor(Math.random() * 1000000);
+                }
+                await authing.insertOne({ id: member.id, guild: member.guild.id, code: code });
+                dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
+                const value = await dm.send(String(code));
+                dm.messages.pin(vaule);
+                dbclient.close();
+            }
+        }
     }
 });
 
@@ -72,7 +65,7 @@ client.on('ready', function () {
     }]
     client.application.commands.set(data);
 });
-client.on('interactionCreate', function (interaction) {
+client.on('interactionCreate', async function (interaction) {
     if (!interaction.isCommand()) {
         return;
     }
@@ -86,99 +79,80 @@ client.on('interactionCreate', function (interaction) {
             oldauthdata = true
         }
         const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
-        dbclient.connect().then(function (mongoclient) {
-            const setting = mongoclient.db('2auth').collection('setting');
-            if (interaction.options.getRole('verifiedrole').id == interaction.guild.roles.everyone.id) {
-                setting.findOneAndDelete({ guild: interaction.guild.id }).then(function () {
-                    dbclient.close();
-                });
+        const mongoclient = await dbclient.connect();
+        const setting = mongoclient.db('2auth').collection('setting');
+        if (interaction.options.getRole('verifiedrole').id == interaction.guild.roles.everyone.id) {
+            await setting.findOneAndDelete({ guild: interaction.guild.id });
+            dbclient.close();
+        } else {
+            const hit = await setting.findOne({ guild: interaction.guild.id });
+            if (hit) {
+                await setting.findOneAndUpdate({ guild: interaction.guild.id }, { guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id });
+                dbclient.close();
             } else {
-                setting.findOne({ guild: interaction.guild.id }).then(function (hit) {
-                    if (hit) {
-                        setting.findOneAndUpdate({ guild: interaction.guild.id }, { guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id }).then(function () {
-                            dbclient.close();
-                        });
-                    } else {
-                        setting.insertOne({ guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id }).then(function () {
-                            dbclient.close();
-                        });
-                    }
-                });
+                await setting.insertOne({ guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id });
+                dbclient.close();
             }
-        });
+        }
         interaction.reply({ content: 'Updating settings', ephemeral: true });
     }
 });
 client.login();
-app.get('/', function (request, response) {
+app.get('/', async function (request, response) {
     if (request.query.code) {
-        fetch('https://discordapp.com/api/oauth2/token', {
+        const res = await fetch('https://discordapp.com/api/oauth2/token', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
             body: `client_id=${process.env.CLIENT_ID}&client_secret=${process.env.CLIENT_SECRET}&grant_type=authorization_code&code=${request.query.code}&redirect_uri=https://twofactorauthenticationservice.herokuapp.com/`
-        }).then(function (res) {
-            res.json().then(function (json) {
-                const access_token = json.access_token
-                fetch('https://discordapp.com/api/users/@me', {
-                    headers: {
-                        'Authorization': `Bearer ${access_token}`
-                    }
-                }).then(function (res) {
-                    res.json().then(function (json) {
-                        const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
-                        dbclient.connect().then(function (mongoclient) {
-                            const authing = mongoclient.db('2auth').collection('authing');
-                            authing.findOne({ id: json.id }).then(function (hit) {
-                                if (hit) {
-                                    return response.redirect(`/?id=${json.id}`);
-                                } else {
-                                    response.send('You are not currently authenticated');
-                                }
-                            });
-                        });
-                    });
-                });
-            });
         });
+        const json = await res.json();
+        const access_token = json.access_token
+        const idres = await fetch('https://discordapp.com/api/users/@me', {
+            headers: {
+                'Authorization': `Bearer ${access_token}`
+            }
+        });
+        const idjson = await idres.json();
+        const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
+        const mongoclient = await dbclient.connect();
+        const authing = mongoclient.db('2auth').collection('authing');
+        const hit = await authing.findOne({ id: idjson.id });
+        if (hit) {
+            return response.redirect(`/?id=${idjson.id}`);
+        } else {
+            response.send('You are not currently authenticated');
+        }
     } else if (request.query.number && request.query.id && request.query.savehash) {
         const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
-        dbclient.connect().then(function (mongoclient) {
-            const setting = mongoclient.db('2auth').collection('setting');
-            const authing = mongoclient.db('2auth').collection('authing');
-            const authed = mongoclient.db('2auth').collection('authed');
-            authing.findOne({ id: request.query.id }).then(function (hit) {
-                if (hit) {
-                    if (hit.code == request.query.number) {
-                        response.send('<h1>Authentication successful! <a href="#" onclick="window.close();return false">You can close this window</a></h1>');
-                        setting.findOne({ guild: hit.guild }).then(function (hitsetting) {
-                            authed.findOne({ id: hash(request.query.id) }).then(function (hitauthed) {
-                                if (hitsetting.canold && request.query.savehash == 'on' && !hitauthed) {
-                                    authed.insertOne({ id: hash(request.query.id) });
-                                }
-                            });
-                            client.guilds.fetch(hit.guild).then(function (guildserver) {
-                                guildserver.members.fetch(request.query.id).then(function (member) {
-                                    member.roles.add(hitsetting.role).then(function () {
-                                        authing.findOneAndDelete({ id: request.query.id }).then(function () {
-                                            dbclient.close();
-                                        });
-                                    });
-                                });
-                            });
-                        });
-                    }
-                } else {
-                    response.send('Authentication failed. <a href="/?start=0">Try again</a>');
+        const mongoclient = await dbclient.connect();
+        const setting = mongoclient.db('2auth').collection('setting');
+        const authing = mongoclient.db('2auth').collection('authing');
+        const authed = mongoclient.db('2auth').collection('authed');
+        const hit = await authing.findOne({ id: request.query.id });
+        if (hit) {
+            if (hit.code == request.query.number) {
+                response.send('<h1>Authentication successful! <a href="#" onclick="window.close();return false">You can close this window</a></h1>');
+                const hitsetting = await setting.findOne({ guild: hit.guild });
+                const hitauthed = await authed.findOne({ id: hash(request.query.id) });
+                if (hitsetting.canold && request.query.savehash == 'on' && !hitauthed) {
+                    authed.insertOne({ id: hash(request.query.id) });
                 }
-            });
-        });
+                const guildserver = await client.guilds.fetch(hit.guild);
+                const member = await guildserver.members.fetch(request.query.id);
+                await member.roles.add(hitsetting.role);
+                await authing.findOneAndDelete({ id: request.query.id });
+                dbclient.close();
+            } else {
+                response.send('Authentication failed. <a href="/?start=0">Try again</a>');
+            }
+        }
     } else if (request.query.redir) {
-        if (request.query.redir.startsWith('https://discord.gg')) {
+        if (request.query.redir.startsWith('https://discord.gg') | request.query.redir.startsWith('https://discord.com')) {
             response.redirect(request.query.redir);
         } else {
-            response.send('To redirect, specify an invitation link to discord that begins with https://discord.gg/.');
+            response.send('To redirect, specify an invitation link to discord that starts with https://discord.gg/ or https://discord.com.');
         }
     } else {
         return response.sendFile('index.html', { root: '.' });
