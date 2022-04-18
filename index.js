@@ -46,7 +46,7 @@ client.on('guildMemberAdd', async function (member) {
     }
 });
 
-client.on('ready', function () {
+client.on('ready', async function () {
     const data = [{
         name: 'twofa',
         description: 'Set up two-factor authentication',
@@ -62,9 +62,8 @@ client.on('ready', function () {
             required: false
         }]
     }]
-    client.application.commands.set(data).then(function () {
-        console.log('client is ready');
-    });
+    await client.application.commands.set(data);
+    console.log('client is ready');
 });
 client.on('interactionCreate', async function (interaction) {
     if (!interaction.isCommand()) {
