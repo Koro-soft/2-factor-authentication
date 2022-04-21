@@ -9,42 +9,6 @@ const app = express();
 const client = new Discord.Client({
     intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.DIRECT_MESSAGES, Discord.Intents.FLAGS.GUILD_MEMBERS]
 });
-client.on('guildMemberAdd', async function (member) {
-    if (!member.user.bot) {
-        const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
-        const mongoclient = await dbclient.connect();
-        const setting = mongoclient.db('2auth').collection('setting');
-        const authing = mongoclient.db('2auth').collection('authing');
-        const authed = mongoclient.db('2auth').collection('authed');
-        const hitmember = await authing.findOne({ id: member.id });
-        if (hitmember) {
-            const dm = await member.createDM();
-            dm.send('You are currently authenticating. Please rejoin after authentication is complete');
-        } else {
-            let authend = false;
-            const hitsetting = await setting.findOne({ guild: member.guild.id });
-            if (hitsetting) {
-                const id = await authed.findOne({ id: hash(member.id) });
-                if (hitsetting.canold && id) {
-                    member.roles.add(hitsetting.role);
-                    authend = true
-                }
-            }
-            if (!authend) {
-                const dm = await member.createDM();
-                let code = Math.floor(Math.random() * 1000000);
-                while (String(code).length != 6) {
-                    code = Math.floor(Math.random() * 1000000);
-                }
-                await authing.insertOne({ id: member.id, guild: member.guild.id, code: code });
-                dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
-                const value = await dm.send(String(code));
-                dm.messages.pin(vaule);
-                dbclient.close();
-            }
-        }
-    }
-});
 
 client.on('ready', async function () {
     const data = [{
@@ -61,40 +25,121 @@ client.on('ready', async function () {
             description: '(Default: true) Whether or not data that has been authenticated in the past can be used',
             required: false
         }]
+    }, {
+        name: 'setbtn',
+        description: 'Send the Start Authentication button to the channel you ran',
+        options: [{
+            type: 'STRING',
+            name: 'msg',
+            description: 'Text in the message',
+            required: false
+        }, {
+            type: 'STRING',
+            name: 'btn',
+            description: 'Text in the button',
+            required: false
+        }]
     }]
     await client.application.commands.set(data);
     console.log('client is ready');
 });
 client.on('interactionCreate', async function (interaction) {
-    if (!interaction.isCommand()) {
-        return;
-    }
-    if (interaction.commandName === 'twofa') {
-        if (!interaction.member.permissions.has('ADMINISTRATOR')) {
-            interaction.reply({ content: 'Administrator rights are required to run this command', ephemeral: true });
-            return
-        }
-        let oldauthdata = interaction.options.getBoolean('canuseoldauthdata');
-        if (oldauthdata == null) {
-            oldauthdata = true
-        }
-        const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
-        const mongoclient = await dbclient.connect();
-        const setting = mongoclient.db('2auth').collection('setting');
-        if (interaction.options.getRole('verifiedrole').id == interaction.guild.roles.everyone.id) {
-            await setting.findOneAndDelete({ guild: interaction.guild.id });
-            dbclient.close();
-        } else {
-            const hit = await setting.findOne({ guild: interaction.guild.id });
-            if (hit) {
-                await setting.findOneAndUpdate({ guild: interaction.guild.id }, { guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id });
+    if (interaction.isCommand()) {
+        if (interaction.commandName === 'twofa') {
+            if (!interaction.member.permissions.has(Discord.Permissions.FLAGS.ADMINISTRATOR)) {
+                interaction.reply({ content: 'Administrator rights are required to run this command', ephemeral: true });
+                return
+            }
+            if (interaction.options.getRole('verifiedrole').comparePositionTo(interaction.member.guild.me.roles.botRole) >= 0) {
+                interaction.reply('Because the bot is below the target role, Unable to set');
+                return
+            }
+            let oldauthdata = interaction.options.getBoolean('canuseoldauthdata');
+            if (!oldauthdata) {
+                oldauthdata = true
+            }
+            const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
+            const mongoclient = await dbclient.connect();
+            const setting = mongoclient.db('2auth').collection('setting');
+            if (interaction.options.getRole('verifiedrole').id == interaction.guild.roles.everyone.id) {
+                await setting.findOneAndDelete({ guild: interaction.guild.id });
                 dbclient.close();
             } else {
-                await setting.insertOne({ guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id });
-                dbclient.close();
+                const hit = await setting.findOne({ guild: interaction.guild.id });
+                if (hit) {
+                    await setting.findOneAndUpdate({ guild: interaction.guild.id }, { guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id });
+                    dbclient.close();
+                } else {
+                    await setting.insertOne({ guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id });
+                    dbclient.close();
+                }
+            }
+            interaction.reply({ content: 'Updating settings', ephemeral: true });
+        }
+        if (interaction.commandName == 'setbtn') {
+            let msg = interaction.options.getString('msg');
+            if (!msg) {
+                msg = 'Allow dm, then click the button below'
+            }
+            let btn = interaction.options.getString('btn');
+            if (!btn) {
+                btn = 'Start authentication (use dm)'
+            }
+            const comp = new MessageActionRow()
+                .addComponents(
+                    new MessageButton()
+                        .setCustomId('startauth')
+                        .setLabel(btn)
+                        .setStyle('PRIMARY')
+                );
+            interaction.reply({ content: msg, components: [comp] });
+        }
+    }
+    if (interaction.isButton() && interaction.component.customId == 'startauth') {
+        const member = interaction.member
+        if (!member.user.bot) {
+            try {
+                await member.createDM();
+            } catch {
+                interaction.reply({ content: 'dm could not be sent. Check your privacy settings', ephemeral: true });
+                return
+            }
+            const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
+            const mongoclient = await dbclient.connect();
+            const setting = mongoclient.db('2auth').collection('setting');
+            const authing = mongoclient.db('2auth').collection('authing');
+            const authed = mongoclient.db('2auth').collection('authed');
+            const hitmember = await authing.findOne({ id: member.id });
+            if (hitmember) {
+                interaction.reply({ content: 'Currently authenticating. Press the button again after authentication is complete', ephemeral: true });
+            } else {
+                let authend = false;
+                const hitsetting = await setting.findOne({ guild: member.guild.id });
+                if (member.roles.includes((await interaction.guild.roles.fetch(hitsetting.role)))) {
+                    interaction.reply({ content: 'Authentication message sent to dm', ephemeral: true });
+                }
+                if (hitsetting) {
+                    const id = await authed.findOne({ id: hash(member.id) });
+                    if (hitsetting.canold && id) {
+                        member.roles.add(hitsetting.role);
+                        authend = true
+                    }
+                }
+                if (!authend) {
+                    const dm = await member.createDM();
+                    let code = Math.floor(Math.random() * 1000000);
+                    while (String(code).length != 6) {
+                        code = Math.floor(Math.random() * 1000000);
+                    }
+                    await authing.insertOne({ id: member.id, guild: member.guild.id, code: code });
+                    dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
+                    await dm.send(String(code));
+                    dm.messages.pin(vaule);
+                    dbclient.close();
+                    interaction.reply({ content: 'Authentication message sent to dm', ephemeral: true });
+                }
             }
         }
-        interaction.reply({ content: 'Updating settings', ephemeral: true });
     }
 });
 client.login();
