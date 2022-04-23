@@ -133,6 +133,7 @@ client.on('interactionCreate', async function (interaction) {
                                 dm.messages.pin(vaule);
                             } catch {
                                 interaction.reply({ content: 'dm could not be sent. Check your privacy settings', ephemeral: true });
+                                authing.findOneAndDelete({ id: member.id, guild: member.guild.id, code: code });
                                 return
                             }
                             dbclient.close();
