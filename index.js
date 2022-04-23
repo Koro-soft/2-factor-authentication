@@ -102,12 +102,6 @@ client.on('interactionCreate', async function (interaction) {
         if (interaction.component.customId == 'startauth') {
             const member = interaction.member
             if (!member.user.bot) {
-                try {
-                    await member.createDM();
-                } catch {
-                    interaction.reply({ content: 'dm could not be sent. Check your privacy settings', ephemeral: true });
-                    return
-                }
                 const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
                 const mongoclient = await dbclient.connect();
                 const setting = mongoclient.db('2auth').collection('setting');
@@ -132,9 +126,15 @@ client.on('interactionCreate', async function (interaction) {
                                 code = Math.floor(Math.random() * 1000000);
                             }
                             await authing.insertOne({ id: member.id, guild: member.guild.id, code: code });
-                            dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
-                            await dm.send(String(code));
-                            dm.messages.pin(vaule);
+                            try {
+                                await member.createDM();
+                                dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
+                                await dm.send(String(code));
+                                dm.messages.pin(vaule);
+                            } catch {
+                                interaction.reply({ content: 'dm could not be sent. Check your privacy settings', ephemeral: true });
+                                return
+                            }
                             dbclient.close();
                             interaction.reply({ content: 'Authentication message sent to dm', ephemeral: true });
                         }
