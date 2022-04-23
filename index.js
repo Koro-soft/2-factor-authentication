@@ -77,7 +77,7 @@ client.on('interactionCreate', async function (interaction) {
             interaction.reply({ content: 'Updating settings\nSend the start authentication button using /setbtn', ephemeral: true });
         }
         if (interaction.commandName == 'setbtn') {
-            if (interaction.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_CHANNELS)) {
+            if (interaction.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_CHANNELS), false) {
                 interaction.reply({ content: 'you do not have the necessary permissions', ephemeral: true });
             }
             let msg = interaction.options.getString('msg');
