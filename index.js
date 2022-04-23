@@ -119,28 +119,30 @@ client.on('interactionCreate', async function (interaction) {
                 } else {
                     let authend = false;
                     const hitsetting = await setting.findOne({ guild: member.guildid });
-                    if (member.roles.includes((await interaction.guild.roles.fetch(hitsetting.role)))) {
-                        interaction.reply({ content: 'You are already authenticated', ephemeral: true });
-                    }
                     if (hitsetting) {
                         const id = await authed.findOne({ id: hash(member.id) });
                         if (hitsetting.canold && id) {
                             member.roles.add(hitsetting.role);
                             authend = true
                         }
-                    }
-                    if (!authend) {
-                        const dm = await member.createDM();
-                        let code = Math.floor(Math.random() * 1000000);
-                        while (String(code).length != 6) {
-                            code = Math.floor(Math.random() * 1000000);
+                        if (member.roles.includes((await interaction.guild.roles.fetch(hitsetting.role)))) {
+                            interaction.reply({ content: 'You are already authenticated', ephemeral: true });
                         }
-                        await authing.insertOne({ id: member.id, guild: member.guild.id, code: code });
-                        dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
-                        await dm.send(String(code));
-                        dm.messages.pin(vaule);
-                        dbclient.close();
-                        interaction.reply({ content: 'Authentication message sent to dm', ephemeral: true });
+                        if (!authend) {
+                            const dm = await member.createDM();
+                            let code = Math.floor(Math.random() * 1000000);
+                            while (String(code).length != 6) {
+                                code = Math.floor(Math.random() * 1000000);
+                            }
+                            await authing.insertOne({ id: member.id, guild: member.guild.id, code: code });
+                            dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
+                            await dm.send(String(code));
+                            dm.messages.pin(vaule);
+                            dbclient.close();
+                            interaction.reply({ content: 'Authentication message sent to dm', ephemeral: true });
+                        }
+                    }else{
+                        interaction.reply({content: 'Two-factor authentication is not valid on this server', ephemeral:true})
                     }
                 }
             }
@@ -208,10 +210,10 @@ app.get('/', async function (request, response) {
         return response.sendFile('index.html', { root: '.' });
     }
 });
-app.get('/auth', function(req, res){
+app.get('/auth', function (req, res) {
     res.redirect('https://discord.com/api/oauth2/authorize?client_id=947435878891008041&redirect_uri=https%3A%2F%2Ftwofactorauthenticationservice.herokuapp.com%2F&response_type=code&scope=identify');
 });
-app.get('/bot', function(req,res){
+app.get('/bot', function (req, res) {
     res.redirect('https://discord.com/api/oauth2/authorize?client_id=947435878891008041&permissions=268437504&scope=bot%20applications.commands');
 });
 app.listen(process.env.PORT, function () {
