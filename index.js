@@ -74,20 +74,23 @@ client.on('interactionCreate', async function (interaction) {
                     dbclient.close();
                 }
             }
-            interaction.reply({ content: 'Updating settings', ephemeral: true });
+            interaction.reply({ content: 'Updating settings\nSend the start authentication button using /setbtn', ephemeral: true });
         }
         if (interaction.commandName == 'setbtn') {
+            if (interaction.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_CHANNELS)) {
+                interaction.reply({ content: 'you do not have the necessary permissions', ephemeral: true });
+            }
             let msg = interaction.options.getString('msg');
             if (!msg) {
                 msg = 'Allow dm, then click the button below'
             }
             let btn = interaction.options.getString('btn');
             if (!btn) {
-                btn = 'Start authentication (use dm)'
+                btn = '🔓 Start authentication (use dm)'
             }
-            const comp = new MessageActionRow()
+            const comp = new Discord.MessageActionRow()
                 .addComponents(
-                    new MessageButton()
+                    new Discord.MessageButton()
                         .setCustomId('startauth')
                         .setLabel(btn)
                         .setStyle('PRIMARY')
@@ -95,48 +98,50 @@ client.on('interactionCreate', async function (interaction) {
             interaction.reply({ content: msg, components: [comp] });
         }
     }
-    if (interaction.isButton() && interaction.component.customId == 'startauth') {
-        const member = interaction.member
-        if (!member.user.bot) {
-            try {
-                await member.createDM();
-            } catch {
-                interaction.reply({ content: 'dm could not be sent. Check your privacy settings', ephemeral: true });
-                return
-            }
-            const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
-            const mongoclient = await dbclient.connect();
-            const setting = mongoclient.db('2auth').collection('setting');
-            const authing = mongoclient.db('2auth').collection('authing');
-            const authed = mongoclient.db('2auth').collection('authed');
-            const hitmember = await authing.findOne({ id: member.id });
-            if (hitmember) {
-                interaction.reply({ content: 'Currently authenticating. Press the button again after authentication is complete', ephemeral: true });
-            } else {
-                let authend = false;
-                const hitsetting = await setting.findOne({ guild: member.guild.id });
-                if (member.roles.includes((await interaction.guild.roles.fetch(hitsetting.role)))) {
-                    interaction.reply({ content: 'Authentication message sent to dm', ephemeral: true });
+    if (interaction.isButton()) {
+        if (interaction.component.customId == 'startauth') {
+            const member = interaction.member
+            if (!member.user.bot) {
+                try {
+                    await member.createDM();
+                } catch {
+                    interaction.reply({ content: 'dm could not be sent. Check your privacy settings', ephemeral: true });
+                    return
                 }
-                if (hitsetting) {
-                    const id = await authed.findOne({ id: hash(member.id) });
-                    if (hitsetting.canold && id) {
-                        member.roles.add(hitsetting.role);
-                        authend = true
+                const dbclient = new Mongo.MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.fkhxd.mongodb.net/2auth?retryWrites=true&w=majority`);
+                const mongoclient = await dbclient.connect();
+                const setting = mongoclient.db('2auth').collection('setting');
+                const authing = mongoclient.db('2auth').collection('authing');
+                const authed = mongoclient.db('2auth').collection('authed');
+                const hitmember = await authing.findOne({ id: member.id });
+                if (hitmember) {
+                    interaction.reply({ content: 'Currently authenticating. Press the button again after authentication is complete', ephemeral: true });
+                } else {
+                    let authend = false;
+                    const hitsetting = await setting.findOne({ guild: member.guildid });
+                    if (member.roles.includes((await interaction.guild.roles.fetch(hitsetting.role)))) {
+                        interaction.reply({ content: 'You are already authenticated', ephemeral: true });
                     }
-                }
-                if (!authend) {
-                    const dm = await member.createDM();
-                    let code = Math.floor(Math.random() * 1000000);
-                    while (String(code).length != 6) {
-                        code = Math.floor(Math.random() * 1000000);
+                    if (hitsetting) {
+                        const id = await authed.findOne({ id: hash(member.id) });
+                        if (hitsetting.canold && id) {
+                            member.roles.add(hitsetting.role);
+                            authend = true
+                        }
                     }
-                    await authing.insertOne({ id: member.id, guild: member.guild.id, code: code });
-                    dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
-                    await dm.send(String(code));
-                    dm.messages.pin(vaule);
-                    dbclient.close();
-                    interaction.reply({ content: 'Authentication message sent to dm', ephemeral: true });
+                    if (!authend) {
+                        const dm = await member.createDM();
+                        let code = Math.floor(Math.random() * 1000000);
+                        while (String(code).length != 6) {
+                            code = Math.floor(Math.random() * 1000000);
+                        }
+                        await authing.insertOne({ id: member.id, guild: member.guild.id, code: code });
+                        dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
+                        await dm.send(String(code));
+                        dm.messages.pin(vaule);
+                        dbclient.close();
+                        interaction.reply({ content: 'Authentication message sent to dm', ephemeral: true });
+                    }
                 }
             }
         }
@@ -202,6 +207,12 @@ app.get('/', async function (request, response) {
     } else {
         return response.sendFile('index.html', { root: '.' });
     }
+});
+app.get('/auth', function(req, res){
+    res.redirect('https://discord.com/api/oauth2/authorize?client_id=947435878891008041&redirect_uri=https%3A%2F%2Ftwofactorauthenticationservice.herokuapp.com%2F&response_type=code&scope=identify');
+});
+app.get('/bot', function(req,res){
+    res.redirect('https://discord.com/api/oauth2/authorize?client_id=947435878891008041&permissions=268437504&scope=bot%20applications.commands');
 });
 app.listen(process.env.PORT, function () {
     console.log('HTTP server is listening');
