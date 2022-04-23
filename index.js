@@ -45,6 +45,7 @@ client.on('ready', async function () {
 });
 client.on('interactionCreate', async function (interaction) {
     if (interaction.isCommand()) {
+        interaction.deferReply();
         if (interaction.commandName === 'twofa') {
             if (!interaction.member.permissions.has(Discord.Permissions.FLAGS.ADMINISTRATOR)) {
                 interaction.reply({ content: 'Administrator rights are required to run this command', ephemeral: true });
@@ -99,6 +100,7 @@ client.on('interactionCreate', async function (interaction) {
         }
     }
     if (interaction.isButton()) {
+        interaction.deferReply();
         if (interaction.component.customId == 'startauth') {
             const member = interaction.member
             if (!member.user.bot) {
