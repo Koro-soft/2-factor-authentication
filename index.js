@@ -75,7 +75,7 @@ client.on('interactionCreate', async function (interaction) {
                     dbclient.close();
                 }
             }
-            interaction.reply({ content: 'Updating settings\nSend the start authentication button using /setbtn', ephemeral: true });
+            interaction.reply({ content: 'Updated settings\nSend the start authentication button using /setbtn', ephemeral: true });
         }
         if (interaction.commandName == 'setbtn') {
             if (interaction.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_CHANNELS), false) {
