@@ -67,7 +67,7 @@ client.on('interactionCreate', async function (interaction) {
             } else {
                 const hit = await setting.findOne({ guild: interaction.guild.id });
                 if (hit) {
-                    await setting.findOneAndUpdate({ guild: interaction.guild.id }, { guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id });
+                    await setting.findOneAndReplace({ guild: interaction.guild.id }, { guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id });
                     dbclient.close();
                 } else {
                     await setting.insertOne({ guild: interaction.guild.id, canold: oldauthdata, role: interaction.options.getRole('verifiedrole').id });
