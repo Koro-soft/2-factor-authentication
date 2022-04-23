@@ -125,9 +125,6 @@ client.on('interactionCreate', async function (interaction) {
                             member.roles.add(hitsetting.role);
                             authend = true
                         }
-                        if (member.roles.includes((await interaction.guild.roles.fetch(hitsetting.role)))) {
-                            interaction.reply({ content: 'You are already authenticated', ephemeral: true });
-                        }
                         if (!authend) {
                             const dm = await member.createDM();
                             let code = Math.floor(Math.random() * 1000000);
