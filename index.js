@@ -118,7 +118,7 @@ client.on('interactionCreate', async function (interaction) {
                     interaction.reply({ content: 'Currently authenticating. Press the button again after authentication is complete', ephemeral: true });
                 } else {
                     let authend = false;
-                    const hitsetting = await setting.findOne({ guild: member.guildid });
+                    const hitsetting = await setting.findOne({ guild: member.guild.id });
                     if (hitsetting) {
                         const id = await authed.findOne({ id: hash(member.id) });
                         if (hitsetting.canold && id) {
@@ -141,8 +141,8 @@ client.on('interactionCreate', async function (interaction) {
                             dbclient.close();
                             interaction.reply({ content: 'Authentication message sent to dm', ephemeral: true });
                         }
-                    }else{
-                        interaction.reply({content: 'Two-factor authentication is not valid on this server', ephemeral:true})
+                    } else {
+                        interaction.reply({ content: 'Two-factor authentication is not valid on this server', ephemeral: true })
                     }
                 }
             }
