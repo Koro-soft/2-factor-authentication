@@ -126,6 +126,7 @@ client.on('interactionCreate', async function (interaction) {
                                 code = Math.floor(Math.random() * 1000000);
                             }
                             await authing.insertOne({ id: member.id, guild: member.guild.id, code: code });
+                            let cancel = false
                             try {
                                 await member.createDM();
                                 dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
@@ -134,10 +135,12 @@ client.on('interactionCreate', async function (interaction) {
                             } catch (error) {
                                 interaction.reply({ content: 'dm could not be sent. Check your privacy settings', ephemeral: true });
                                 authing.findOneAndDelete({ id: member.id, guild: member.guild.id, code: code });
-                                return
+                                cancel = true
                             }
-                            dbclient.close();
-                            interaction.reply({ content: 'Authentication message sent to dm', ephemeral: true });
+                            if (cancel) {
+                                dbclient.close();
+                                interaction.reply({ content: 'Authentication message sent to dm', ephemeral: true });
+                            }
                         }
                     } else {
                         interaction.reply({ content: 'Two-factor authentication is not valid on this server', ephemeral: true })
