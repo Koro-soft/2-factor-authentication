@@ -131,7 +131,7 @@ client.on('interactionCreate', async function (interaction) {
                                 dm.send('https://twofactorauthenticationservice.herokuapp.com/?start=0 Open. After that, please complete the authentication by entering the code below');
                                 await dm.send(String(code));
                                 dm.messages.pin(vaule);
-                            } catch {
+                            } catch (error) {
                                 interaction.reply({ content: 'dm could not be sent. Check your privacy settings', ephemeral: true });
                                 authing.findOneAndDelete({ id: member.id, guild: member.guild.id, code: code });
                                 return
