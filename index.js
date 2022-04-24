@@ -86,7 +86,7 @@ client.on('interactionCreate', async function (interaction) {
             }
             let btn = interaction.options.getString('btn');
             if (!btn) {
-                btn = '🔓 Start authentication (use dm)'
+                btn = ' Start authentication (use dm)'
             }
             const comp = new Discord.MessageActionRow()
                 .addComponents(
@@ -94,6 +94,7 @@ client.on('interactionCreate', async function (interaction) {
                         .setCustomId('startauth')
                         .setLabel(btn)
                         .setStyle('PRIMARY')
+                        .setEmoji('🔓')
                 );
             interaction.reply({ content: msg, components: [comp] });
         }
